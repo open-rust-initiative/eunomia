@@ -10,13 +10,21 @@ TBD
 
 To contribute to this repository, you should:
 
-- Sign the [Developer Certificate of Origin](https://developercertificate.org) (DCO) by adding a `Signed-off-by` line to your commit messages. This certifies that you wrote or have the right to submit the code you are contributing to the project.
+- Sign the [Developer Certificate of Origin](https://developercertificate.org) (DCO) by adding a `Signed-off-by` line to your commit messages, which can automatically be done by passing a `-s` or `--signoff` option when commit your changes.
+This certifies that you wrote or have the right to submit the code you are contributing to the project, do note that you might need to add a signing key on Github to have a `verified` status on your commit, detailed information will be listed below.
 - Choose an issue to work on. Issues labeled `good first issue` are suitable for newcomers. You can also look for issues marked `help wanted`.
 - Fork the eunomia repository and create a branch for your changes.
 - Make your changes and commit them with a clear commit message.
 - Push your changes to GitHub and open a pull request.
 - Respond to any feedback on your pull request. The eunomia maintainers will review your changes and may request modifications before merging.
 - Once your pull request is merged, you will be listed as a contributor in the project repository and documentation.
+
+### Add signing keys
+
+In order to mark your commit as `verified`, you have to first [*add a gpg key to Github*](https://docs.github.com/en/enterprise-cloud@latest/authentication/managing-commit-signature-verification/adding-a-gpg-key-to-your-github-account). Alternatively, you can use your existing SSH key for signing if you are using
+Git 2.34 or later. More information could be found at [*Telling Git about your signing key*](https://docs.github.com/en/enterprise-cloud@latest/authentication/managing-commit-signature-verification/telling-git-about-your-signing-key).
+
+### Commit sign-off
 
 Contributors sign-off that they adhere to these requirements by adding a Signed-off-by line to commit messages.
 
