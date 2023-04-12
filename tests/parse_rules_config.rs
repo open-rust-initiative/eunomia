@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::collections::HashSet;
 
 use eunomia::parser::*;
 
@@ -29,14 +30,13 @@ fn de_normal_rules() {
     );
     assert_eq!(
         cfg.coding_guidelines,
-        [
-            "P.Exam.Ple.01",
-            "P.Exam.Ple.02",
-            "P.Exam.Ple.03",
-            "G.Exam.Ple.01",
-            "G.Exam.Ple.02",
-        ]
-        .into()
+        HashSet::from([
+            "P.Exam.Ple.01".parse().unwrap(),
+            "P.Exam.Ple.02".parse().unwrap(),
+            "P.Exam.Ple.03".parse().unwrap(),
+            "G.Exam.Ple.01".parse().unwrap(),
+            "G.Exam.Ple.02".parse().unwrap(),
+        ])
     );
 }
 

@@ -4,3 +4,4 @@ pub mod parser;
 pub mod utils;
 
 use anyhow::Result;
+pub use errors::Error;

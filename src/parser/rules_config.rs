@@ -2,6 +2,8 @@ use super::Deserialize;
 use std::collections::HashSet;
 use std::path::Path;
 
+use super::guideline::GuidelineID;
+
 /// The user defined rules configuration.
 ///
 /// User can specify which file to check, what compilation options to pass,
@@ -12,5 +14,5 @@ pub struct RulesCfg<'ru> {
     #[serde(default)]
     pub supplement_compilation_options: Option<&'ru str>,
     #[serde(default)]
-    pub coding_guidelines: HashSet<&'ru str>,
+    pub coding_guidelines: HashSet<GuidelineID>,
 }
