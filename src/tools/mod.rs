@@ -4,9 +4,9 @@
 //! All relavent definition should be declared here, just in case more tools will be
 //! added or deleted in the future.
 
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum SupportedTool {
     Clippy,
     #[default]
@@ -33,5 +33,26 @@ impl Display for SupportedTool {
             Sanitizer => "sanitizer",
         };
         f.write_str(str)
+    }
+}
+
+// TODO: put this method in a derive macro
+impl FromStr for SupportedTool {
+    type Err = crate::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "clippy" => Ok(Self::Clippy),
+            "rustc" => Ok(Self::Rustc),
+            "miri" => Ok(Self::Miri),
+            "sanitizer" => Ok(Self::Sanitizer),
+            _ => Err(crate::Error::ParseUnsupportedEnumVariant(
+                "tool name",
+                s.to_string(),
+                SupportedTool::all()
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect(),
+            )),
+        }
     }
 }
