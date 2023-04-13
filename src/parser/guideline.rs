@@ -1,9 +1,10 @@
 //! This module contains definitions of CodingGuidelines related data.
 
+use super::{de, Deserialize, Serialize};
 use crate::Error;
-use super::{Deserialize, de};
-use std::str::FromStr;
+use std::{hash::Hash, str::FromStr};
 
+/// An unique identifier for a guideline item.
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct GuidelineID {
     /// A character representing the type of this guideline,
@@ -50,10 +51,33 @@ impl ToString for GuidelineID {
 // Deserialize guideline ID with `FromStr` implementation.
 impl<'de> Deserialize<'de> for GuidelineID {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: serde::Deserializer<'de> {
+    where
+        D: serde::Deserializer<'de>,
+    {
         let s = String::deserialize(deserializer)?;
         FromStr::from_str(&s).map_err(de::Error::custom)
+    }
+}
+
+impl Serialize for GuidelineID {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+/// Basic information about a guideline item, including its id and name.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GuidelineSummary {
+    pub id: GuidelineID,
+    pub name: String,
+}
+
+impl Hash for GuidelineSummary {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state)
     }
 }
 
@@ -64,7 +88,7 @@ mod tests {
     #[test]
     fn good_guideline_id() {
         let id_1 = "P.Exam.Ple.01".parse::<GuidelineID>();
-        let id_2 = "G.Typ.Arr.04".parse::<GuidelineID>();
+        let id_2 = "G.typ.arr.04".parse::<GuidelineID>();
         let id_3 = "P.VAR.CONST.02".parse::<GuidelineID>();
 
         assert_eq!(

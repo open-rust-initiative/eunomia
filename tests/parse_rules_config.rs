@@ -1,5 +1,5 @@
-use std::path::Path;
 use std::collections::HashSet;
+use std::path::Path;
 
 use eunomia::parser::*;
 
