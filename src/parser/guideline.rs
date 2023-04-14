@@ -1,8 +1,66 @@
 //! This module contains definitions of CodingGuidelines related data.
 
 use super::{de, Deserialize, Serialize};
-use crate::Error;
+use crate::tools::SupportedTool;
+use crate::{Error, Result};
 use std::{hash::Hash, str::FromStr};
+
+/// Contains a `Vec` of [`Guideline`] items.
+#[derive(Debug, Deserialize)]
+pub struct CodingGuidelines<'g> {
+    #[serde(borrow)]
+    pub coding_guidelines: Vec<Guideline<'g>>,
+}
+
+impl<'g> CodingGuidelines<'g> {
+    pub fn from_json(s: &'g str) -> Result<Self> {
+        Ok(serde_json::from_str(s)?)
+    }
+}
+
+/// Complete information about a coding guideline item,
+/// including its relation with tools.
+#[derive(Debug, Deserialize)]
+pub struct Guideline<'g> {
+    pub id: GuidelineID,
+    pub name: &'g str,
+    #[serde(default)]
+    pub level: CheckLevel,
+    pub tool: Vec<CheckTool<'g>>,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Default, Clone, Copy)]
+#[serde(rename_all = "lowercase")]
+pub enum CheckLevel {
+    Fatal,
+    Severe,
+    #[serde(alias = "normal")]
+    #[default]
+    Warn,
+    Prompt,
+    Info,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CheckTool<'g> {
+    /// Name of the tool, must be one of the [`SupportedTool`] variants.
+    pub name: SupportedTool,
+    /// The keyword of how we filter checking result to a specific guideline item.
+    ///
+    /// Could be a lint name, or specific keyword in a tool's output.
+    pub ident: &'g str,
+}
+
+// Deserialize SupportedTool with its `FromStr` implementation.
+impl<'de> Deserialize<'de> for SupportedTool {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        FromStr::from_str(&s).map_err(de::Error::custom)
+    }
+}
 
 /// An unique identifier for a guideline item.
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -16,6 +74,16 @@ pub struct GuidelineID {
     /// The index of this guideline inside its group,
     /// such as "01", "12".
     pub idx: String,
+}
+
+impl<T: AsRef<str>> PartialEq<T> for GuidelineID {
+    fn eq(&self, other: &T) -> bool {
+        if let Ok(id) = other.as_ref().parse::<Self>() {
+            self == &id
+        } else {
+            false
+        }
+    }
 }
 
 impl FromStr for GuidelineID {
@@ -155,5 +223,16 @@ mod tests {
         assert!(id_2.is_err());
         assert!(id_3.is_err());
         assert!(id_4.is_err());
+    }
+
+    #[test]
+    fn guideline_id_cmp_with_str() {
+        let id_1 = "p.typ.int.01";
+        let id_2 = "G.TyP.INt.02";
+        let id_3 = "G.TYP.INT.03";
+
+        assert_eq!(id_1.parse::<GuidelineID>().unwrap(), id_1);
+        assert_eq!(id_2.parse::<GuidelineID>().unwrap(), id_2.to_lowercase());
+        assert_eq!(id_3.parse::<GuidelineID>().unwrap(), id_3.to_lowercase());
     }
 }
