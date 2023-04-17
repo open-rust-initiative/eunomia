@@ -5,14 +5,14 @@ use std::path::PathBuf;
 #[test]
 fn se_check_info_single_entity() {
     let check_info_list = vec![CheckInfo {
-        file_path: PathBuf::from("./src/main.rs"),
+        file_path: Some(PathBuf::from("./src/main.rs")),
         tool: SupportedTool::Clippy,
         defect_name: "exhaustive_enums".to_string(),
         begin_line: Some(15),
         column: Some(23),
-        code_string: Some(String::new()),
-        help_info: Some(String::new()),
-        additional_help_info: Some(String::new()),
+        code_string: String::new(),
+        help_info: String::new(),
+        additional_help_info: String::new(),
         guideline_list: vec![GuidelineSummary {
             id: "P.VAR.01".parse().unwrap(),
             name: "ssss".to_string(),
@@ -54,26 +54,26 @@ fn se_check_info_single_entity() {
 fn se_check_info_multiple_entities() {
     let check_info_list = vec![
         CheckInfo {
-            file_path: PathBuf::from("./src/main.rs"),
+            file_path: Some(PathBuf::from("./src/main.rs")),
             tool: SupportedTool::Clippy,
             defect_name: "exhaustive_enums".to_string(),
             begin_line: Some(15),
             end_line: Some(18),
             column: Some(23),
-            code_string: Some("xxx {\n\n\n xxa }".to_string()),
-            help_info: Some(String::new()),
-            additional_help_info: Some(String::new()),
+            code_string: "xxx {\n\n\n xxa }".to_string(),
+            help_info: String::new(),
+            additional_help_info: String::new(),
             guideline_list: vec![GuidelineSummary {
                 id: "P.VAR.01".parse().unwrap(),
                 name: "ssss".to_string(),
             }],
         },
         CheckInfo {
-            file_path: PathBuf::from("./src/lib.rs"),
+            file_path: Some(PathBuf::from("./src/lib.rs")),
             defect_name: "dead_code".to_string(),
             begin_line: Some(20),
             column: Some(8),
-            code_string: Some("let x = 1;".to_string()),
+            code_string: "let x = 1;".to_string(),
             guideline_list: vec![
                 GuidelineSummary {
                     id: "g.exam.ple.01".parse().unwrap(),
@@ -87,7 +87,7 @@ fn se_check_info_multiple_entities() {
             ..Default::default()
         },
         CheckInfo {
-            file_path: PathBuf::from("./src/something.rs"),
+            file_path: Some(PathBuf::from("./src/something.rs")),
             defect_name: "memory_leak".to_string(),
             tool: SupportedTool::Sanitizer,
             guideline_list: vec![GuidelineSummary {
@@ -125,8 +125,8 @@ fn se_check_info_multiple_entities() {
       "end_line": null,
       "column": 8,
       "code_string": "let x = 1;",
-      "help_info": null,
-      "additional_help_info": null,
+      "help_info": "",
+      "additional_help_info": "",
       "guideline_list": [
         {
           "id": "g.exam.ple.01",
@@ -145,9 +145,9 @@ fn se_check_info_multiple_entities() {
       "begin_line": null,
       "end_line": null,
       "column": null,
-      "code_string": null,
-      "help_info": null,
-      "additional_help_info": null,
+      "code_string": "",
+      "help_info": "",
+      "additional_help_info": "",
       "guideline_list": [
         {
           "id": "g.exam.ple.03",
@@ -180,15 +180,15 @@ fn se_empty_check_info() {
     let expected_json = r#"{
   "check_info": [
     {
-      "file_path": "",
+      "file_path": null,
       "defect_name": "",
       "tool": "rustc",
       "begin_line": null,
       "end_line": null,
       "column": null,
-      "code_string": null,
-      "help_info": null,
-      "additional_help_info": null,
+      "code_string": "",
+      "help_info": "",
+      "additional_help_info": "",
       "guideline_list": []
     }
   ]

@@ -137,7 +137,7 @@ impl Serialize for GuidelineID {
 }
 
 /// Basic information about a guideline item, including its id and name.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct GuidelineSummary {
     pub id: GuidelineID,
     pub name: String,

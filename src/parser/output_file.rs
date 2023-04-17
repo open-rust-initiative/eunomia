@@ -41,15 +41,15 @@ impl Output {
 // serialized, switch to builder pattern when derive macro is available in the future.
 #[derive(Debug, Serialize, Default)]
 pub struct CheckInfo {
-    pub file_path: PathBuf,
+    pub file_path: Option<PathBuf>,
     pub defect_name: String,
     pub tool: SupportedTool,
     pub begin_line: Option<usize>,
     pub end_line: Option<usize>,
     pub column: Option<usize>,
-    pub code_string: Option<String>,
-    pub help_info: Option<String>,
-    pub additional_help_info: Option<String>,
+    pub code_string: String,
+    pub help_info: String,
+    pub additional_help_info: String,
     pub guideline_list: Vec<GuidelineSummary>,
 }
 
