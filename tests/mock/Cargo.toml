@@ -1,0 +1,12 @@
+# clippy::cargo-common-metadata (cargo)
+[package]
+name = "mock"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+
+# clippy::negative_feature_names (cargo)
+[features]
+no-abc = []
+not-def = []
