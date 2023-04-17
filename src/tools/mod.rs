@@ -8,7 +8,7 @@ mod clippy;
 
 pub use self::clippy::ClippyOpt;
 
-use crate::Result;
+use crate::{parser::CheckInfo, Result};
 use std::{fmt::Display, process::Output, str::FromStr};
 
 /// Simple struct contains the name of executable, its args, and env vars in order
@@ -35,8 +35,16 @@ impl Display for Command<'_> {
 pub trait Checker {
     /// Get output by running commands.
     fn check(&self) -> Result<Output>;
-    /// Extract useful information from output.
-    fn filter_output(&self, output: &Output) -> FilteredOutput;
+    /// Extract only the useful information from output while splitting
+    /// them into different sections of multiple checking results.
+    ///
+    /// Note that the outputs are lossy `String` types, which is suitable
+    /// for printing. If you want a generalized output types,
+    /// implement [`Checker::check_info`] to interpret each output message
+    /// into a generalized [`CheckInfo`] type.
+    fn filter_output(output: &Output) -> FilteredOutput;
+    /// Generalize a string of output message to [`CheckInfo`] struct.
+    fn check_info(raw_result: &str) -> Result<CheckInfo>;
 }
 
 /// The output of a tool could have multiple sections of checked result,
