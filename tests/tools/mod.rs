@@ -1,4 +1,4 @@
-mod clippy;
+mod lints;
 
 use std::path::{Path, PathBuf};
 use std::sync::Once;
