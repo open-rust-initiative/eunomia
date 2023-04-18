@@ -4,15 +4,16 @@
 //! All relavent definition should be declared here, just in case more tools will be
 //! added or deleted in the future.
 
-mod clippy;
+mod lints;
 
-pub use self::clippy::ClippyOpt;
+pub use self::lints::LintsOpt;
 
 use crate::{parser::CheckInfo, Result};
 use std::{fmt::Display, process::Output, str::FromStr};
 
 /// Simple struct contains the name of executable, its args, and env vars in order
 /// to form a full runable command.
+#[derive(Default)]
 pub struct Command<'c> {
     pub app: &'c str,
     pub args: &'c [&'c str],
@@ -42,9 +43,9 @@ pub trait Checker {
     /// for printing. If you want a generalized output types,
     /// implement [`Checker::check_info`] to interpret each output message
     /// into a generalized [`CheckInfo`] type.
-    fn filter_output(output: &Output) -> FilteredOutput;
+    fn filter_output(&self, output: &Output) -> FilteredOutput;
     /// Generalize a string of output message to [`CheckInfo`] struct.
-    fn check_info(raw_result: &str) -> Result<CheckInfo>;
+    fn check_info(&self, raw_result: &str) -> Result<CheckInfo>;
 }
 
 /// The output of a tool could have multiple sections of checked result,

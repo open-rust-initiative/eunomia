@@ -1,41 +1,33 @@
+//! Lints implementation of the [`Checker`] trait,
+//! works for rustc lints and clippy lints.
+
 use regex::Regex;
 
-use super::{Checker, Command, FilteredOutput};
+use super::{Checker, Command, FilteredOutput, SupportedTool};
 use crate::parser::CheckInfo;
 use crate::{utils, Result};
 use std::path::PathBuf;
 use std::process::Output;
 
-pub struct ClippyOpt<'c> {
-    cmd: Command<'c>,
+pub struct LintsOpt<'c> {
+    pub is_clippy: bool,
+    pub cmd: Command<'c>,
 }
 
-impl<'c> ClippyOpt<'c> {
-    pub fn from_command(cmd: Command<'c>) -> Self {
-        Self { cmd }
-    }
-}
-
-impl Checker for ClippyOpt<'_> {
+impl Checker for LintsOpt<'_> {
     fn check(&self) -> Result<Output> {
         utils::execute_for_output(self.cmd.app, self.cmd.args, self.cmd.envs.to_vec())
     }
-    fn filter_output(output: &Output) -> FilteredOutput {
-        // Clippy output is usually stderr type, so we keep stdout empty.
+    fn filter_output(&self, output: &Output) -> FilteredOutput {
+        // rustc_lint result is usually stderr type, so we keep stdout empty.
         let stdout = Vec::new();
 
         let mut stderr = Vec::new();
+        let stderr_str = String::from_utf8_lossy(&output.stderr).trim().to_string();
 
-        let stderr_str = String::from_utf8_lossy(&output.stderr).to_string();
-
-        // Clippy splits each output by double newline characters,
+        // rustc_lint divide each output by double newline characters,
         let mut stderr_iter = stderr_str.split("\n\n").peekable();
-        // The first line of Clippy out is always `Checking <crate name> ...`
-        // which is irrelevent in this case, so we will remove the first line of the first item.
-        if let Some(first) = stderr_iter
-            .next()
-            .map(|s| s.lines().skip(1).collect::<Vec<_>>())
-        {
+        if let Some(first) = stderr_iter.next().map(skip_first_line_when_possible) {
             stderr.push(first.join("\n"));
         }
 
@@ -73,7 +65,7 @@ impl Checker for ClippyOpt<'_> {
     /// assert_eq!(info.help_info, Some("range is out of bounds".to_string()));
     /// assert_eq!(info.defect_name, "out_of_bounds_indexing".to_string());
     /// ```
-    fn check_info(raw_result: &str) -> Result<CheckInfo> {
+    fn check_info(&self, raw_result: &str) -> Result<CheckInfo> {
         let mut lines = raw_result.trim().lines();
 
         // First line contains help message
@@ -97,28 +89,36 @@ impl Checker for ClippyOpt<'_> {
             _ => (None, None, None),
         };
 
-        // Handle the rest of lines
         let mut code_string = String::new();
         let mut extracted_info = ExtractedCheckInfo::default();
-        // regex to extract lint name from 'note: `#[warn(clippy::lint_name)]`'
-        let note_regex = Regex::new(r"clippy::(?P<name>(\w+))")?;
-        // regex to extract lint name from help message, which is from a url.
-        let help_regex = Regex::new(r"rust-clippy/master/index.html#(?P<name>(\w+))")?;
-        // A flag to mark whether the program is look for error code snippets or
-        // not, otherwise it's possible that a suggestion code will be mistaken as
-        // error code snippet.
+        let help_lint_name_regex = if self.is_clippy {
+            Some(Regex::new(r"rust-clippy/master/index.html#(\w+)")?)
+        } else {
+            None
+        };
+        let note_lint_name_regex = Some(Regex::new(r"(`-(?:W|D) (.*?)`)|(\((.*?)\)\])")?);
+        // A flag to mark whether the program is looking for error code snippets or not,
+        // otherwise it's possible that a suggestion snippet will be taken by mistake.
         let mut looking_for_code = true;
 
         for line in lines {
             let trimmed = line.trim();
             // FIXME: this method is dumb, it's expensive and could cause false positive if
-            // a string variable has 'help: ' inside of it.
-            if trimmed.contains("help: ") {
+            // a string variable has '= help: ' inside of it.
+            if trimmed.contains("= help: ") {
                 looking_for_code = false;
-                update_info_from_help_or_note(trimmed, &help_regex, "help: ", &mut extracted_info);
-            } else if trimmed.contains("note: ") {
+                update_info_from_help_or_note(
+                    &mut extracted_info,
+                    trimmed,
+                    help_lint_name_regex.as_ref(),
+                );
+            } else if trimmed.contains("= note: ") {
                 looking_for_code = false;
-                update_info_from_help_or_note(trimmed, &note_regex, "note: ", &mut extracted_info);
+                update_info_from_help_or_note(
+                    &mut extracted_info,
+                    trimmed,
+                    note_lint_name_regex.as_ref(),
+                );
             } else if looking_for_code {
                 if let Some(code) = maybe_code_line(trimmed) {
                     code_string.push_str(code);
@@ -129,7 +129,11 @@ impl Checker for ClippyOpt<'_> {
         Ok(CheckInfo {
             file_path,
             defect_name: extracted_info.defect_name,
-            tool: super::SupportedTool::Clippy,
+            tool: if self.is_clippy {
+                SupportedTool::Clippy
+            } else {
+                SupportedTool::Rustc
+            },
             begin_line,
             column,
             code_string,
@@ -150,22 +154,37 @@ struct ExtractedCheckInfo {
     additional_help: String,
 }
 
-fn update_info_from_help_or_note(
-    line: &str,
-    re: &Regex,
-    split_by: &'static str,
-    info: &mut ExtractedCheckInfo,
-) {
-    if let Some(msg) = line.split_once(split_by).map(|(_, s)| s) {
-        info.additional_help.push_str(&format!("{msg}\n"));
+/// The first line of lints result is inconsistent depending on different scenario,
+/// it could be the result straight away such as `warning: xxx` or `error: xxx`.
+/// Or, it could be notification such as `    Checking crate xxx` or `    Blocking waiting for ...`
+/// in that case we can skip that those information.
+fn skip_first_line_when_possible(s: &str) -> Vec<&str> {
+    let mut result = vec![];
+    let mut lines = s.lines();
+    for line in lines.by_ref() {
+        if !line.trim_start().starts_with(['w', 'e']) {
+            continue;
+        } else {
+            result.push(line);
+            break;
+        }
     }
-    if let Some(lint_name) = utils::regex_utils::get_named_match("name", re, line) {
-        info.defect_name = lint_name;
+    result.extend(lines);
+    result
+}
+
+fn update_info_from_help_or_note(info: &mut ExtractedCheckInfo, line: &str, re: Option<&Regex>) {
+    info.additional_help
+        .push_str(&format!("{}\n", line.trim_start_matches("= ")));
+    if let Some(re) = re {
+        if let Some(lint_name) = utils::regex_utils::capture_last(re, line) {
+            info.defect_name = lint_name.to_string();
+        }
     }
 }
 
 fn maybe_code_line(s: &str) -> Option<&str> {
-    if let Some((num, code)) = s.split_once('|') {
+    if let Some((num, code)) = s.split_once(" | ") {
         if num.trim().parse::<usize>().is_ok() {
             return Some(code);
         }
@@ -180,11 +199,16 @@ mod tests {
 
     #[test]
     fn test_extract_lint_name_from_note() {
-        let note_regex = Regex::new(r"clippy::(?P<name>(\w+))").unwrap();
         let note_str = "= note: `#[warn(clippy::bool_comparison)]` on by default";
+        let note_str_1 = "= note: requested on the command line with `-W non-ascii-idents`";
 
-        let name = regex_utils::get_named_match("name", &note_regex, note_str);
-        assert_eq!(name, Some("bool_comparison".to_string()));
+        let note_regex = Regex::new(r"(`-(?:W|D) (.*?)`)|(\((.*?)\)\])").unwrap();
+
+        let name = regex_utils::capture_last(&note_regex, note_str);
+        let name_1 = regex_utils::capture_last(&note_regex, note_str_1);
+
+        assert_eq!(name, Some("clippy::bool_comparison"));
+        assert_eq!(name_1, Some("non-ascii-idents"));
     }
 
     #[test]
@@ -203,10 +227,7 @@ mod tests {
         let code_line_2 = "   |        ^^^^^^^^^^^^ help: try simplifying it as shown: `flag`";
         let code_line_3 = "   |     ";
 
-        assert_eq!(
-            maybe_code_line(code_line_1),
-            Some("     if flag == true {}")
-        );
+        assert_eq!(maybe_code_line(code_line_1), Some("    if flag == true {}"));
         assert_eq!(maybe_code_line(code_line_2), None);
         assert_eq!(maybe_code_line(code_line_3), None);
     }
