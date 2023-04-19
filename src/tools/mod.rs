@@ -5,33 +5,12 @@
 //! added or deleted in the future.
 
 mod lints;
+pub mod miri;
 
 pub use self::lints::LintsOpt;
 
 use crate::{parser::CheckInfo, Result};
 use std::{fmt::Display, process::Output, str::FromStr};
-
-/// Simple struct contains the name of executable, its args, and env vars in order
-/// to form a full runable command.
-#[derive(Default)]
-pub struct Command<'c> {
-    pub app: &'c str,
-    pub args: &'c [&'c str],
-    pub envs: &'c [(&'c str, &'c str)],
-}
-
-impl Display for Command<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let args = self.args.join(" ");
-        let envs = self
-            .envs
-            .iter()
-            .map(|(k, v)| format!("{k}=\"{v}\""))
-            .collect::<Vec<String>>()
-            .join(" ");
-        f.write_fmt(format_args!("{envs} {} {}", self.app, args))
-    }
-}
 
 pub trait Checker {
     /// Get output by running commands.
@@ -121,35 +100,5 @@ impl FromStr for SupportedTool {
                     .collect(),
             )),
         }
-    }
-}
-
-#[cfg(test)]
-mod common_tool_tests {
-    use super::Command;
-
-    #[test]
-    fn command_lifetime_and_to_string() {
-        let cmd = Command {
-            app: "cargo",
-            args: &["clippy", "--fix", "--", "-W", "clippy::all"],
-            envs: &[("TESTNAME", "needless_match")],
-        };
-        assert_eq!(
-            cmd.to_string(),
-            "TESTNAME=\"needless_match\" cargo clippy --fix -- -W clippy::all"
-        );
-        let app = "cargo";
-        let args = vec!["add", "serde", "--features", "derive"];
-        let envs = [("MY_ENV_VAR", "example")];
-        let cmd = Command {
-            app,
-            args: &args,
-            envs: &envs,
-        };
-        assert_eq!(
-            cmd.to_string(),
-            "MY_ENV_VAR=\"example\" cargo add serde --features derive"
-        );
     }
 }

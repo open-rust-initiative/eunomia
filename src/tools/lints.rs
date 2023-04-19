@@ -1,22 +1,32 @@
 //! Lints implementation of the [`Checker`] trait,
 //! works for rustc lints and clippy lints.
 
+use std::process::{Command, Output};
+
 use regex::Regex;
 
-use super::{Checker, Command, FilteredOutput, SupportedTool};
+use super::{Checker, FilteredOutput, SupportedTool};
 use crate::parser::CheckInfo;
 use crate::{utils, Result};
 use std::path::PathBuf;
-use std::process::Output;
 
-pub struct LintsOpt<'c> {
+#[derive(Debug, Default)]
+pub struct LintsOpt {
     pub is_clippy: bool,
-    pub cmd: Command<'c>,
+    pub program: String,
+    pub args: Vec<String>,
+    pub envs: Vec<(String, String)>,
+    pub cur_dir: PathBuf,
 }
 
-impl Checker for LintsOpt<'_> {
+impl Checker for LintsOpt {
     fn check(&self) -> Result<Output> {
-        utils::execute_for_output(self.cmd.app, self.cmd.args, self.cmd.envs.to_vec())
+        let output = Command::new(&self.program)
+            .current_dir(&self.cur_dir)
+            .args(&self.args)
+            .envs(self.envs.iter().map(|(k, v)| (k, v)))
+            .output()?;
+        Ok(output)
     }
     fn filter_output(&self, output: &Output) -> FilteredOutput {
         // rustc_lint result is usually stderr type, so we keep stdout empty.

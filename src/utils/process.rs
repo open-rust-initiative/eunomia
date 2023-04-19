@@ -1,34 +1,6 @@
-use std::{
-    ffi::OsStr,
-    io::ErrorKind,
-    process::{Child, Command, Output},
-};
+use std::{ffi::OsStr, io::ErrorKind, process::Command};
 
 use crate::Result;
-
-/// Execute a command with args and environment variables,
-/// and return a handle to the child process.
-pub fn execute<A, K, V, I>(app: A, args: &[V], vars: I) -> Result<Child>
-where
-    A: AsRef<OsStr>,
-    K: AsRef<OsStr>,
-    V: AsRef<OsStr>,
-    I: IntoIterator<Item = (K, V)>,
-{
-    Ok(Command::new(app).args(args).envs(vars).spawn()?)
-}
-
-/// Similar to [`execute`], but will wait for the child process to finish and
-/// return its output.
-pub fn execute_for_output<A, K, V, I>(app: A, args: &[V], vars: I) -> Result<Output>
-where
-    A: AsRef<OsStr>,
-    K: AsRef<OsStr>,
-    V: AsRef<OsStr>,
-    I: IntoIterator<Item = (K, V)>,
-{
-    Ok(Command::new(app).args(args).envs(vars).output()?)
-}
 
 /// This will check where a command exist by attempting to run it first.
 ///
