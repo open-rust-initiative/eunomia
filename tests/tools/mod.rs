@@ -1,4 +1,5 @@
 mod lints;
+mod miri;
 
 use std::path::{Path, PathBuf};
 use std::sync::Once;

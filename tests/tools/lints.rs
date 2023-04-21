@@ -1,7 +1,7 @@
 use super::mock_dir;
 use anyhow::Result;
 use eunomia::{parser::CheckInfo, tools::*};
-use std::{env::set_current_dir, path::PathBuf};
+use std::path::PathBuf;
 
 /// Manually compare two check info, without the need of impl PartialEq for the entire
 /// struct just for the sake of tests, and provide more details in which member doesn't match.
@@ -24,10 +24,7 @@ fn assert_eq_check_info(lhs: &CheckInfo, rhs: &CheckInfo) {
 // FIXME: this comparison is extremely unefficient,
 // each time the mocked crate got changed, we have to manually modify the expected
 // output to pass the test, can we use something similar to clippy's `dev bless` mechanism?
-fn lints_output_comparison(cmd: Command, is_clippy: bool, expected: &mut Vec<&str>) -> Result<()> {
-    set_current_dir(mock_dir())?;
-
-    let opt = LintsOpt { cmd, is_clippy };
+fn lints_output_comparison(opt: LintsOpt, expected: &mut Vec<&str>) -> Result<()> {
     let output = opt.check()?;
     let mut filtered = opt.filter_output(&output);
 
@@ -43,9 +40,11 @@ fn lints_output_comparison(cmd: Command, is_clippy: bool, expected: &mut Vec<&st
 
 #[test]
 fn clippy_lints_default() -> Result<()> {
-    let cmd = Command {
-        app: "cargo",
-        args: &["clippy"],
+    let opt = LintsOpt {
+        program: "cargo".into(),
+        args: vec!["clippy".into()],
+        is_clippy: true,
+        cur_dir: mock_dir().to_path_buf(),
         ..Default::default()
     };
 
@@ -132,7 +131,7 @@ fn clippy_lints_default() -> Result<()> {
    = note: `#[warn(unused_variables)]` on by default",
     ];
 
-    lints_output_comparison(cmd, true, &mut expected_output)
+    lints_output_comparison(opt, &mut expected_output)
 }
 
 #[test]
@@ -148,7 +147,7 @@ fn clippy_unified_output() {
 
     let info = LintsOpt {
         is_clippy: true,
-        cmd: Command::default(),
+        ..Default::default()
     }
     .check_info(output_1)
     .unwrap();
@@ -178,7 +177,7 @@ fn clippy_unified_output_short() {
 
     let opt = LintsOpt {
         is_clippy: true,
-        cmd: Command::default(),
+        ..Default::default()
     };
     let info = opt.check_info(output_1).unwrap();
 
@@ -194,20 +193,24 @@ fn clippy_unified_output_short() {
 
 #[test]
 fn rustc_lints_default() -> Result<()> {
-    let cargo_cmd = Command {
-        app: "cargo",
-        args: &["check"],
+    let cargo_cmd = LintsOpt {
+        program: "cargo".into(),
+        args: vec!["check".into()],
+        is_clippy: false,
+        cur_dir: mock_dir().to_path_buf(),
         ..Default::default()
     };
-    let rustc_cmd = Command {
-        app: "rustc",
-        args: &[
-            "src/lints.rs",
-            "--crate-type",
-            "lib",
-            "--out-dir",
-            "target/",
+    let rustc_cmd = LintsOpt {
+        program: "rustc".into(),
+        cur_dir: mock_dir().to_path_buf(),
+        args: vec![
+            "src/lints.rs".into(),
+            "--crate-type".into(),
+            "lib".into(),
+            "--out-dir".into(),
+            "target/".into(),
         ],
+        is_clippy: false,
         ..Default::default()
     };
     let mut expected = vec![
@@ -243,8 +246,8 @@ fn rustc_lints_default() -> Result<()> {
    = note: `#[warn(dead_code)]` on by default",
     ];
 
-    lints_output_comparison(cargo_cmd, false, &mut expected)?;
-    lints_output_comparison(rustc_cmd, false, &mut expected)
+    lints_output_comparison(cargo_cmd, &mut expected)?;
+    lints_output_comparison(rustc_cmd, &mut expected)
 }
 
 #[test]
@@ -259,7 +262,7 @@ fn rustc_unified_output() {
 
     let opt = LintsOpt {
         is_clippy: false,
-        cmd: Command::default(),
+        ..Default::default()
     };
     let info = opt.check_info(output).unwrap();
 
@@ -289,7 +292,7 @@ fn rustc_unified_output_custom() {
 
     let info = LintsOpt {
         is_clippy: false,
-        cmd: Command::default(),
+        ..Default::default()
     }
     .check_info(output)
     .unwrap();
