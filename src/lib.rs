@@ -4,5 +4,5 @@ pub mod parser;
 pub mod tools;
 pub mod utils;
 
-use anyhow::Result;
+pub use anyhow::Result;
 pub use errors::Error;

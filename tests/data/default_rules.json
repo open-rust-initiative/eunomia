@@ -1,0 +1,10 @@
+{
+    "file_path": "../mock/lib.rs",
+    "coding_guidelines": [
+        "P.Mock.01",
+        "G.Mock.01",
+        "G.Mock.02",
+        "G.Mock.Sty.01",
+        "G.Mock.Mem.01"
+    ]
+}

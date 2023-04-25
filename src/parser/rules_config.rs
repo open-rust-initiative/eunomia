@@ -1,4 +1,4 @@
-use super::Deserialize;
+use super::{Deserialize, JsonStruct};
 use std::collections::HashSet;
 use std::path::Path;
 
@@ -16,3 +16,5 @@ pub struct RulesCfg<'ru> {
     #[serde(default)]
     pub coding_guidelines: HashSet<GuidelineID>,
 }
+
+impl<'ru> JsonStruct<'ru> for RulesCfg<'ru> {}
