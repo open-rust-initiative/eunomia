@@ -1,0 +1,58 @@
+{
+    "coding_guidelines": [
+        {
+            "id": "P.Mock.01",
+            "name": "Use `is_empty` instead of comparing to zero whenever possible",
+            "level": "warn",
+            "tool": [
+                {
+                    "name": "clippy",
+                    "ident": "clippy::comparison_to_empty"
+                }
+            ]
+        },
+        {
+            "id": "G.Mock.01",
+            "name": "Do not access out of bound memory",
+            "level": "warn",
+            "tool": [
+                {
+                    "name": "clippy",
+                    "ident": "clippy::out_of_bounds_indexing"
+                }
+            ]
+        },
+        {
+            "id": "G.Mock.02",
+            "name": "Do not try to decrement integer with double negetive sign",
+            "tool": [
+                {
+                    "name": "clippy",
+                    "ident": "clippy::double_neg"
+                }
+            ]
+        },
+        {
+            "id": "G.Mock.Sty.01",
+            "name": "Do not use non-ascii idents",
+            "level": "warn",
+            "tool": [
+                {
+                    "name": "rustc",
+                    "ident": "non-ascii-idents"
+                }
+            ]
+        },
+        {
+            "id": "G.Mock.Mem.01",
+            "name": "Use `std::mem::swap`",
+            "level": "severe",
+            "tool": [
+                {
+                    "name": "clippy",
+                    "ident": "clippy::almost_swapped"
+                }
+            ]
+        }
+    ]
+}

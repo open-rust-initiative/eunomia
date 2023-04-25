@@ -1,0 +1,3 @@
+[toolchain]
+channel = "nightly"
+components = ["cargo", "rust-std", "rustc", "rustfmt", "clippy", "miri"]

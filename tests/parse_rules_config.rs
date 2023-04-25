@@ -47,7 +47,7 @@ fn de_default_rules() {
     "file_path": "./src/main.rs"
 }"#;
 
-    let test_cfg: Result<RulesCfg, _> = serde_json::from_str(rule_str);
+    let test_cfg = RulesCfg::deserialize(rule_str);
     assert!(test_cfg.is_ok());
 
     let cfg = test_cfg.unwrap();
@@ -63,6 +63,6 @@ fn de_rules_missing_path() {
         "supplement_compilation_options": "-I../a/b/c/d sources=../e/f/g/h.rs"
     }"#;
 
-    let test_cfg: Result<RulesCfg, _> = serde_json::from_str(rule_str);
+    let test_cfg = RulesCfg::deserialize(rule_str);
     assert!(test_cfg.is_err());
 }
