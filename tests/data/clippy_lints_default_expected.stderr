@@ -1,0 +1,80 @@
+error: range is out of bounds
+ --> _
+  |
+9 |     let _ = &x[2..9];
+  |                   ^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#out_of_bounds_indexing
+  = note: `#[deny(clippy::out_of_bounds_indexing)]` on by default
+error: this looks like you are trying to swap `_a` and `_b`
+ --> _
+  |
+5 | /     _a = _b;
+6 | |     _b = _a;
+  | |___________^ help: try: `std::mem::swap(&mut _a, &mut _b)`
+  |
+  = note: or maybe you should use `std::mem::replace`?
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#almost_swapped
+  = note: `#[deny(clippy::almost_swapped)]` on by default
+warning: `--x` could be misinterpreted as pre-decrement by C programmers, is usually a no-op
+  --> _
+   |
+22 |     let _ = --x;
+   |             ^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#double_neg
+   = note: `#[warn(clippy::double_neg)]` on by default
+warning: comparison to empty slice
+  --> _
+   |
+18 |     if s == "" {}
+   |        ^^^^^^^ help: using `is_empty` is clearer and more explicit: `s.is_empty()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#comparison_to_empty
+   = note: `#[warn(clippy::comparison_to_empty)]` on by default
+warning: denote infinite loops with `loop { ... }`
+  --> _
+   |
+43 |     while true { }
+   |     ^^^^^^^^^^ help: use `loop`
+   |
+   = note: `#[warn(while_true)]` on by default
+warning: equality checks against true are unnecessary
+  --> _
+   |
+15 |     if flag == true {}
+   |        ^^^^^^^^^^^^ help: try simplifying it as shown: `flag`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#bool_comparison
+   = note: `#[warn(clippy::bool_comparison)]` on by default
+warning: function `dead_fn` is never used
+  --> _
+   |
+36 | fn dead_fn() { }
+   |    ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+warning: private type `lints::rustc_warning_lints::Priv` in public interface (error E0446)
+  --> _
+   |
+47 |         pub fn f(_: Priv) { }
+   |         ^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #34537 <https://github.com/rust-lang/rust/issues/34537>
+   = note: `#[warn(private_in_public)]` on by default
+warning: this lifetime isn't used in the function definition
+  --> _
+   |
+62 | pub fn rustc_allow_lint_unused_lifetimes<'a>() { }
+   |                                          ^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#extra_unused_lifetimes
+   = note: `#[warn(clippy::extra_unused_lifetimes)]` on by default
+warning: unused variable: `x`
+  --> _
+   |
+41 |     let x = 5;
+   |         ^ help: if this is intentional, prefix it with an underscore: `_x`
+   |
+   = note: `#[warn(unused_variables)]` on by default

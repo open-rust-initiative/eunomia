@@ -1,4 +1,4 @@
-use eunomia::parser::{CheckLevel, CheckTool, CodingGuidelines, Guideline};
+use eunomia::parser::{CheckLevel, CheckTool, CodingGuidelines, Guideline, JsonStruct};
 use eunomia::tools::SupportedTool;
 
 /// Manually comparing two CodingGuidelines struct without impl PartialEq for that
@@ -209,9 +209,9 @@ fn guideline_missing_fields() {
     }
     "#;
 
-    assert!(CodingGuidelines::from_json(gl_1_str).is_err());
-    assert!(CodingGuidelines::from_json(gl_2_str).is_err());
-    assert!(CodingGuidelines::from_json(gl_3_str).is_err());
+    assert!(CodingGuidelines::deserialize(gl_1_str).is_err());
+    assert!(CodingGuidelines::deserialize(gl_2_str).is_err());
+    assert!(CodingGuidelines::deserialize(gl_3_str).is_err());
 }
 
 #[test]
@@ -252,6 +252,6 @@ fn faulty_guidelines() {
     }
     "#;
 
-    assert!(CodingGuidelines::from_json(gl_1_str).is_err());
-    assert!(CodingGuidelines::from_json(gl_2_str).is_err());
+    assert!(CodingGuidelines::deserialize(gl_1_str).is_err());
+    assert!(CodingGuidelines::deserialize(gl_2_str).is_err());
 }

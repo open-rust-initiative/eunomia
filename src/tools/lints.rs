@@ -1,30 +1,69 @@
 //! Lints implementation of the [`Checker`] trait,
 //! works for rustc lints and clippy lints.
 
+use std::collections::HashMap;
 use std::process::{Command, Output};
 
 use regex::Regex;
 
 use super::{Checker, FilteredOutput, SupportedTool};
 use crate::parser::CheckInfo;
-use crate::{utils, Result};
+use crate::{utils, Error, Result};
 use std::path::PathBuf;
 
 #[derive(Debug, Default)]
 pub struct LintsOpt {
     pub is_clippy: bool,
-    pub program: String,
-    pub args: Vec<String>,
-    pub envs: Vec<(String, String)>,
-    pub cur_dir: PathBuf,
+    pub use_cargo: bool,
+    pub lint_names: Vec<String>,
+    pub envs: HashMap<String, String>,
+    pub path: PathBuf,
 }
 
 impl Checker for LintsOpt {
     fn check(&self) -> Result<Output> {
-        let output = Command::new(&self.program)
-            .current_dir(&self.cur_dir)
-            .args(&self.args)
-            .envs(self.envs.iter().map(|(k, v)| (k, v)))
+        let mut args = vec![];
+        let mut env = self.envs.clone();
+        let program = match (self.is_clippy, self.use_cargo) {
+            (true, true) => {
+                args.extend(["clippy".into(), "--".into()]);
+                config_lints_for_args_or_env(true, &self.lint_names, &mut args, &mut env);
+                "cargo"
+            }
+            (true, false) => {
+                config_lints_for_args_or_env(true, &self.lint_names, &mut args, &mut env);
+                "clippy-driver"
+            }
+            (false, true) => {
+                args.push("check".into());
+                config_lints_for_args_or_env(false, &self.lint_names, &mut args, &mut env);
+                "cargo"
+            }
+            (false, false) => {
+                args.extend([
+                    "--crate-type".into(),
+                    // FIXME: this is problematic, find a way to identify or get
+                    // the actual crate-type from user.
+                    "lib".into(),
+                    "--out-dir".into(),
+                    "target/".into(),
+                ]);
+                config_lints_for_args_or_env(true, &self.lint_names, &mut args, &mut env);
+                args.push(self.path.to_string_lossy().to_string());
+                "rustc"
+            }
+        };
+        let cur_dir = if self.path.is_dir() {
+            self.path.as_path()
+        } else {
+            self.path
+                .parent()
+                .ok_or(Error::OrphanFilePath(self.path.clone()))?
+        };
+        let output = Command::new(program)
+            .current_dir(cur_dir)
+            .args(args)
+            .envs(env)
             .output()?;
         Ok(output)
     }
@@ -45,7 +84,7 @@ impl Checker for LintsOpt {
             // Skip the last section of Clippy output because is usually a summary message such as
             // 'warning: `<crate name>` generated x errors....'
             if stderr_iter.peek().is_some() {
-                stderr.push(item.to_string())
+                stderr.push(item.into())
             }
         }
 
@@ -72,8 +111,8 @@ impl Checker for LintsOpt {
     ///   = note: `#[deny(clippy::out_of_bounds_indexing)]` on by default"
     ///
     /// let info = ClippyOpt::check_info(raw_result).unwrap();
-    /// assert_eq!(info.help_info, Some("range is out of bounds".to_string()));
-    /// assert_eq!(info.defect_name, "out_of_bounds_indexing".to_string());
+    /// assert_eq!(info.help_info, Some("range is out of bounds".into()));
+    /// assert_eq!(info.defect_name, "out_of_bounds_indexing".into());
     /// ```
     fn check_info(&self, raw_result: &str) -> Result<CheckInfo> {
         let mut lines = raw_result.trim().lines();
@@ -82,7 +121,7 @@ impl Checker for LintsOpt {
         let help_info = lines
             .next()
             .and_then(|s| s.split_once(':'))
-            .map_or(String::new(), |(_, msg)| msg.trim().to_string());
+            .map_or(String::new(), |(_, msg)| msg.trim().into());
 
         // Second line might contains position info
         let (file_path, begin_line, column) = match lines.next().map(|s| {
@@ -156,6 +195,24 @@ impl Checker for LintsOpt {
     }
 }
 
+fn config_lints_for_args_or_env(
+    for_args: bool,
+    lints: &[String],
+    args: &mut Vec<String>,
+    env: &mut HashMap<String, String>,
+) {
+    if for_args {
+        args.extend(lints.iter().map(|n| format!("-W{n}")));
+    } else {
+        let lints_env = lints.iter().map(|n| format!("-W{n} ")).collect::<String>();
+        if let Some(rustflags) = env.get_mut("RUSTFLAGS") {
+            rustflags.push_str(&lints_env);
+        } else {
+            env.insert("RUSTFLAGS".into(), lints_env);
+        }
+    }
+}
+
 #[derive(Default)]
 /// Subset of [`CheckInfo`], that could be extracted from 'help' and 'note' section
 /// of clippy output.
@@ -188,7 +245,7 @@ fn update_info_from_help_or_note(info: &mut ExtractedCheckInfo, line: &str, re: 
         .push_str(&format!("{}\n", line.trim_start_matches("= ")));
     if let Some(re) = re {
         if let Some(lint_name) = utils::regex_utils::capture_last(re, line) {
-            info.defect_name = lint_name.to_string();
+            info.defect_name = lint_name.trim().into();
         }
     }
 }
@@ -228,7 +285,7 @@ mod tests {
         https://rust-lang.github.io/rust-clippy/master/index.html#bool_comparison";
 
         let name = regex_utils::get_named_match("name", &help_regex, help_str);
-        assert_eq!(name, Some("bool_comparison".to_string()));
+        assert_eq!(name, Some("bool_comparison".into()));
     }
 
     #[test]

@@ -1,0 +1,30 @@
+warning: denote infinite loops with `loop { ... }`
+  --> _
+   |
+43 |     while true { }
+   |     ^^^^^^^^^^ help: use `loop`
+   |
+   = note: `#[warn(while_true)]` on by default
+warning: function `dead_fn` is never used
+  --> _
+   |
+36 | fn dead_fn() { }
+   |    ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+warning: private type `Priv` in public interface (error E0446)
+  --> _
+   |
+47 |         pub fn f(_: Priv) { }
+   |         ^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #34537 <https://github.com/rust-lang/rust/issues/34537>
+   = note: `#[warn(private_in_public)]` on by default
+warning: unused variable: `x`
+  --> _
+   |
+41 |     let x = 5;
+   |         ^ help: if this is intentional, prefix it with an underscore: `_x`
+   |
+   = note: `#[warn(unused_variables)]` on by default

@@ -1,8 +1,9 @@
 //! This module contains definitions of CodingGuidelines related data.
 
-use super::{de, Deserialize, Serialize};
+use super::{de, Deserialize, JsonStruct, Serialize};
 use crate::tools::SupportedTool;
 use crate::{Error, Result};
+use std::collections::HashMap;
 use std::{hash::Hash, str::FromStr};
 
 /// Contains a `Vec` of [`Guideline`] items.
@@ -13,10 +14,21 @@ pub struct CodingGuidelines<'g> {
 }
 
 impl<'g> CodingGuidelines<'g> {
-    pub fn from_json(s: &'g str) -> Result<Self> {
-        Ok(serde_json::from_str(s)?)
+    // TODO: Why not deserializing into a hashmap directly?
+    // hmmm... hashmap has arbiturary order, its hard to test so I use vec at first,
+    // maybe change self.coding_guidelines to hashmap in the future update?
+    pub fn to_hashmap(&'g self) -> HashMap<&'g GuidelineID, &'g Guideline<'g>> {
+        let mut hm = HashMap::new();
+
+        for gl in &self.coding_guidelines {
+            hm.insert(&gl.id, gl);
+        }
+
+        hm
     }
 }
+
+impl<'g> JsonStruct<'g> for CodingGuidelines<'g> {}
 
 /// Complete information about a coding guideline item,
 /// including its relation with tools.
@@ -26,6 +38,7 @@ pub struct Guideline<'g> {
     pub name: &'g str,
     #[serde(default)]
     pub level: CheckLevel,
+    // FIXME: what a dumb non-plural name!
     pub tool: Vec<CheckTool<'g>>,
 }
 
