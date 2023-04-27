@@ -23,6 +23,12 @@ impl Output {
     }
 }
 
+impl From<Vec<CheckInfo>> for Output {
+    fn from(value: Vec<CheckInfo>) -> Self {
+        Self { check_info: value }
+    }
+}
+
 /// Infomation about the checking result.
 ///
 /// This struct basically contains detailed information such as:
@@ -43,6 +49,9 @@ impl Output {
 pub struct CheckInfo {
     pub file_path: Option<PathBuf>,
     pub defect_name: String,
+    // FIXME: this `tool` field is incorrect sometime,
+    // eg. when running clippy, sometimes the potential rustc warnings will also be reported
+    // thus causing `defect_name` being rustc lint, but the tool's name was clippy
     pub tool: SupportedTool,
     pub begin_line: Option<usize>,
     pub end_line: Option<usize>,

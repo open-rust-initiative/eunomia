@@ -1,47 +1,7 @@
-use lazy_static::lazy_static;
-use std::path::PathBuf;
+mod common;
+use common::setup;
+use std::fs;
 use std::process::Command;
-use std::{env, fs, panic};
-
-lazy_static! {
-    static ref TEST_CFG: TestCfg = {
-        #[cfg(windows)]
-        let ext = ".exe";
-        #[cfg(not(windows))]
-        let ext = "";
-
-        let cur_exe = env::current_exe().unwrap();
-        let debug_dir = cur_exe.parent().and_then(|dep| dep.parent()).unwrap();
-        let bin_path = debug_dir.join(format!("{}{ext}", env!("CARGO_PKG_NAME")));
-
-        let output_dir = PathBuf::from(format!("{}", env!("CARGO_MANIFEST_DIR")))
-            .join("target")
-            .join("output");
-        fs::create_dir_all(&output_dir).unwrap();
-
-        TestCfg {
-            bin_path,
-            output_dir,
-        }
-    };
-}
-
-#[derive(Debug, Clone)]
-struct TestCfg {
-    /// Path to the actual program's binary, not the unit test binary.
-    bin_path: PathBuf,
-    output_dir: PathBuf,
-}
-
-fn setup<F>(f: F)
-where
-    F: FnOnce(&TestCfg) -> () + panic::UnwindSafe,
-{
-    panic::catch_unwind(|| {
-        f(&TEST_CFG);
-    })
-    .unwrap();
-}
 
 #[test]
 fn print_version() {
@@ -56,20 +16,24 @@ fn print_version() {
 }
 
 #[test]
-fn run_with_rules() {
+fn run_with_rules_and_cli_paths() {
     setup(|cfg| {
-        let op = Command::new(&cfg.bin_path)
+        let expected_output_file = cfg.test_dir.join("data").join("output_lints_expected.json");
+        let output_file = cfg.output_dir.join("output_lints.json");
+        let st = Command::new(&cfg.bin_path)
             .args([
                 "--rule-file",
-                &format!(
-                    "{}/tests/data/default_rules.json",
-                    env!("CARGO_MANIFEST_DIR")
-                ),
+                &format!("{}/data/default_rules.json", cfg.test_dir.display()),
+                "--src-file",
+                &format!("{}/mock/src/lib.rs", cfg.test_dir.display()),
                 "--output",
-                cfg.output_dir.to_str().unwrap(),
+                output_file.to_str().unwrap(),
             ])
-            .output()
+            .status()
             .unwrap();
-        assert_eq!(String::from_utf8(op.stdout), Ok(String::new()));
+        let expected_output = fs::read_to_string(expected_output_file).unwrap();
+        let output_file_content = fs::read_to_string(output_file).unwrap();
+        assert!(st.success());
+        assert_eq!(expected_output, output_file_content);
     });
 }
